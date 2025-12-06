@@ -1,14 +1,14 @@
 import { clsx } from "clsx";
 import { BookOpen, Files, History, Zap } from "lucide-react";
-import { useState } from "react";
 
 interface SidebarProps {
   onToggle: () => void;
+  // New props to control navigation from the parent
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 }
 
-const Sidebar = ({ onToggle }: SidebarProps) => {
-  const [active, setActive] = useState("editor");
-
+const Sidebar = ({ onToggle, activeTab, onTabChange }: SidebarProps) => {
   const icons = [
     { id: "editor", icon: Files, label: "Explorer" },
     { id: "history", icon: History, label: "History" },
@@ -30,7 +30,8 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
       <div className="flex flex-col gap-6 w-full items-center">
         {icons.map((item) => {
           const Icon = item.icon;
-          const isActive = active === item.id;
+          // Use the prop 'activeTab' instead of local state
+          const isActive = activeTab === item.id;
 
           return (
             <div
@@ -43,7 +44,8 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
               )}
 
               <button
-                onClick={() => setActive(item.id)}
+                // Call the parent function
+                onClick={() => onTabChange(item.id)}
                 className={clsx(
                   "p-2 rounded-lg transition-all duration-300 cursor-pointer",
                   isActive
