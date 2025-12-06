@@ -1,11 +1,13 @@
 import { clsx } from "clsx";
 import { Copy, RotateCcw } from "lucide-react";
 import React from "react";
+import Editor from "react-simple-code-editor";
+import { highlightCode } from "../utils/grammar";
 
 interface ActionButtonProps {
   icon: React.ElementType;
   onClick?: () => void;
-  title?: string; // Good for accessibility/tooltips
+  title?: string;
 }
 
 const ActionButton = ({ icon: Icon, onClick, title }: ActionButtonProps) => (
@@ -19,7 +21,6 @@ const ActionButton = ({ icon: Icon, onClick, title }: ActionButtonProps) => (
 );
 
 interface CodeEditorProps {
-  // 1. Change type from 'object' to 'React.ElementType'
   icon?: React.ElementType;
   title: string;
   filename: string;
@@ -32,17 +33,16 @@ interface CodeEditorProps {
 }
 
 const CodeEditor = ({
-  // 2. Rename 'icon' to 'Icon' (capitalized) so we can render it as <Icon />
   icon: Icon,
   title,
   filename,
   color,
-  value,
+  value = "",
   onChange,
   readOnly,
-  placeholder,
   lineCount = 1,
 }: CodeEditorProps) => {
+  // Generate line numbers
   const lines = Array.from(
     { length: Math.max(15, lineCount) },
     (_, i) => i + 1
@@ -52,16 +52,14 @@ const CodeEditor = ({
     blue: {
       dot: "bg-blue-500",
       tag: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-      text: "text-slate-300",
-      placeholder: "placeholder:text-slate-600",
+      caret: "caret-blue-500",
       iconColor: "text-[#3776AB]",
     },
     green: {
       dot: "bg-green-500",
       tag: "bg-green-500/10 text-green-400 border-green-500/20",
-      text: "text-green-300",
-      placeholder: "placeholder:text-slate-700",
-      iconColor: "text-[#3776AB]", // Python Blue
+      caret: "caret-green-500",
+      iconColor: "text-[#3776AB]",
     },
   };
 
@@ -92,24 +90,22 @@ const CodeEditor = ({
             icon={RotateCcw}
             title="Reset Code"
             onClick={() => {
-              // Logic for reset (we can pass this via props later)
+              // We can implement reset later
             }}
           />
           <ActionButton
             icon={Copy}
             title="Copy to Clipboard"
             onClick={() => {
-              if (value) {
-                navigator.clipboard.writeText(value);
-                // Optional: Trigger a toast here
-              }
+              if (value) navigator.clipboard.writeText(value);
             }}
           />
         </div>
       </div>
 
-      {/* Content */}
+      {/* Editor Content */}
       <div className="relative flex-1 flex overflow-hidden">
+        {/* Line Numbers */}
         <div className="w-12 py-4 flex flex-col items-center text-xs font-mono text-slate-700 bg-slate-950/20 select-none border-r border-slate-800/30">
           {lines.map((n) => (
             <div key={n} className="h-6 leading-6">
@@ -118,24 +114,45 @@ const CodeEditor = ({
           ))}
         </div>
 
-        <textarea
-          value={value}
-          onChange={(e) => onChange && onChange(e.target.value)}
-          readOnly={readOnly}
-          spellCheck={false}
-          className={clsx(
-            "flex-1 bg-transparent p-4 font-mono text-sm resize-none focus:outline-none leading-6",
-            readOnly ? "cursor-default" : "cursor-text",
-            currentStyle.text,
-            currentStyle.placeholder
-          )}
-          placeholder={placeholder}
-        />
+        {/* The Syntax Editor */}
+        <div className="flex-1 relative font-mono text-sm overflow-auto custom-scrollbar">
+          {/* Injecting Custom Prism Styles for this Dark Theme */}
+          <style>{`
+            .token.comment { color: #6b7280; font-style: italic; }
+            .token.keyword { color: #c084fc; font-weight: bold; } /* Purple */
+            .token.string { color: #fbbf24; } /* Amber */
+            .token.number { color: #60a5fa; } /* Blue */
+            .token.function { color: #2dd4bf; } /* Teal */
+            .token.operator { color: #f472b6; } /* Pink */
+            .token.boolean { color: #f87171; } /* Red */
+            
+            textarea:focus { outline: none !important; }
+          `}</style>
+
+          <Editor
+            value={value}
+            onValueChange={(code) => onChange && onChange(code)}
+            highlight={(code) =>
+              highlightCode(code, color === "blue" ? "pseudocode" : "python")
+            }
+            padding={16}
+            readOnly={readOnly}
+            className={clsx(
+              "font-mono min-h-full leading-6 text-slate-300",
+              currentStyle.caret
+            )}
+            textareaClassName="focus:outline-none"
+            style={{
+              fontFamily: '"Fira Code", "JetBrains Mono", monospace',
+              fontSize: 14,
+              backgroundColor: "transparent",
+            }}
+          />
+        </div>
       </div>
 
       {/* Footer */}
       <div className="px-4 py-1.5 text-[11px] text-slate-500 border-t border-slate-800/30 flex justify-between font-mono bg-slate-950/30 items-center">
-        {/* 3. Render the Icon here next to the title */}
         <div className="flex items-center gap-2">
           {Icon && (
             <Icon className={clsx("w-5.5 h-5.5", currentStyle.iconColor)} />
@@ -143,7 +160,6 @@ const CodeEditor = ({
           <span className="font-medium text-slate-400 text-lg">{title}</span>
         </div>
 
-        {/* 4. Fixed the <p> inside <span> issue */}
         <div className="flex gap-1 text-lg">
           <span className="text-slate-300 font-medium">{lineCount}</span>
           <span>lines</span>

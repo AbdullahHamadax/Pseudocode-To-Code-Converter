@@ -11,25 +11,24 @@ import TopBar from "./components/TopBar";
 
 function App() {
   const [pseudoCode, setPseudoCode] = useState(
-    `create a function called greet with parameter name
-    print "Hello, " + name
+    `set scores to list of 10, 50, 80, 25
+set total to 0
 
-set numbers to list of 1, 2, 3, 4, 5
+for each score in scores
+    set total to total + score
+    print "Adding score: " + score
 
-for each num in numbers
-    if num is greater than 3 then
-        print num
-    otherwise
-        print "Too small"`
+if total is greater than 100 then
+    print "High Score!"
+otherwise
+    print "Keep trying..."`
   );
-
   const [pythonCode, setPythonCode] = useState("");
   const [isConverting, setIsConverting] = useState(false);
   const [status, setStatus] = useState("Ready");
 
   // New State for Sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
   const handleConvert = () => {
     setIsConverting(true);
     setStatus("Processing...");
@@ -37,16 +36,17 @@ for each num in numbers
 
     setTimeout(() => {
       setPythonCode(
-        `def greet(name):
-    print("Hello, " + name)
+        `scores = [10, 50, 80, 25]
+total = 0
 
-numbers = [1, 2, 3, 4, 5]
+for score in scores:
+    total = total + score
+    print("Adding score: " + str(score))
 
-for num in numbers:
-    if num > 3:
-        print(num)
-    else:
-        print("Too small")`
+if total > 100:
+    print("High Score!")
+else:
+    print("Keep trying...")`
       );
       setIsConverting(false);
       setStatus("Successfully compiled");
