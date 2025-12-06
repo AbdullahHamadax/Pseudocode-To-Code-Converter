@@ -13,7 +13,7 @@ const SyntaxGuide = () => {
       <div className="flex items-center gap-2 mb-4">
         <Lightbulb className="w-4 h-4 text-yellow-500" />
         <span className="text-slate-300 font-medium text-sm">
-          Quick Pseudocode Syntax Guide
+          Example Pseudocode Syntax Guide
         </span>
       </div>
 

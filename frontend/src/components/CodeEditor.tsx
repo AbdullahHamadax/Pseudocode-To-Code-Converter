@@ -1,7 +1,8 @@
 import { clsx } from "clsx";
-import { Copy, RotateCcw } from "lucide-react";
+import { Copy, RotateCcw, Trash2 } from "lucide-react";
 import React from "react";
 import Editor from "react-simple-code-editor";
+import { toast } from "sonner"; // 1. Import toast
 import { highlightCode } from "../utils/grammar";
 
 interface ActionButtonProps {
@@ -27,6 +28,7 @@ interface CodeEditorProps {
   color: "blue" | "green";
   value?: string;
   onChange?: (val: string) => void;
+  onReset?: () => void;
   readOnly?: boolean;
   placeholder?: string;
   lineCount?: number;
@@ -39,10 +41,10 @@ const CodeEditor = ({
   color,
   value = "",
   onChange,
+  onReset,
   readOnly,
   lineCount = 1,
 }: CodeEditorProps) => {
-  // Generate line numbers
   const lines = Array.from(
     { length: Math.max(15, lineCount) },
     (_, i) => i + 1
@@ -86,18 +88,40 @@ const CodeEditor = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <ActionButton
-            icon={RotateCcw}
-            title="Reset Code"
-            onClick={() => {
-              // We can implement reset later
-            }}
-          />
+          {/* Reset Button */}
+          {!readOnly && onReset && (
+            <ActionButton
+              icon={RotateCcw}
+              title="Reset to Default"
+              onClick={() => {
+                onReset();
+              }}
+            />
+          )}
+
+          {/* Delete Button */}
+          {!readOnly && (
+            <ActionButton
+              icon={Trash2}
+              title="Clear Code"
+              onClick={() => {
+                if (onChange) {
+                  onChange("");
+                }
+              }}
+            />
+          )}
+
+          {/* Copy Button with Sonner Toast */}
           <ActionButton
             icon={Copy}
             title="Copy to Clipboard"
             onClick={() => {
-              if (value) navigator.clipboard.writeText(value);
+              if (value) {
+                navigator.clipboard.writeText(value);
+                // 2. Trigger the toast notification
+                toast.success("Copied to clipboard");
+              }
             }}
           />
         </div>
@@ -105,7 +129,6 @@ const CodeEditor = ({
 
       {/* Editor Content */}
       <div className="relative flex-1 flex overflow-hidden">
-        {/* Line Numbers */}
         <div className="w-12 py-4 flex flex-col items-center text-xs font-mono text-slate-700 bg-slate-950/20 select-none border-r border-slate-800/30">
           {lines.map((n) => (
             <div key={n} className="h-6 leading-6">
@@ -114,24 +137,23 @@ const CodeEditor = ({
           ))}
         </div>
 
-        {/* The Syntax Editor */}
         <div className="flex-1 relative font-mono text-sm overflow-auto custom-scrollbar">
-          {/* Injecting Custom Prism Styles for this Dark Theme */}
           <style>{`
             .token.comment { color: #6b7280; font-style: italic; }
-            .token.keyword { color: #c084fc; font-weight: bold; } /* Purple */
-            .token.string { color: #fbbf24; } /* Amber */
-            .token.number { color: #60a5fa; } /* Blue */
-            .token.function { color: #2dd4bf; } /* Teal */
-            .token.operator { color: #f472b6; } /* Pink */
-            .token.boolean { color: #f87171; } /* Red */
-            
+            .token.keyword { color: #c084fc; font-weight: bold; }
+            .token.string { color: #fbbf24; }
+            .token.number { color: #60a5fa; }
+            .token.function { color: #2dd4bf; }
+            .token.operator { color: #f472b6; }
+            .token.boolean { color: #f87171; }
             textarea:focus { outline: none !important; }
           `}</style>
 
           <Editor
             value={value}
-            onValueChange={(code) => onChange && onChange(code)}
+            onValueChange={(code) => {
+              if (onChange) onChange(code);
+            }}
             highlight={(code) =>
               highlightCode(code, color === "blue" ? "pseudocode" : "python")
             }
@@ -159,7 +181,6 @@ const CodeEditor = ({
           )}
           <span className="font-medium text-slate-400 text-lg">{title}</span>
         </div>
-
         <div className="flex gap-1 text-lg">
           <span className="text-slate-300 font-medium">{lineCount}</span>
           <span>lines</span>
