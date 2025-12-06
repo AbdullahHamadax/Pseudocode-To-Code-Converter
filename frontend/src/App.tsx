@@ -1,8 +1,8 @@
 import { clsx } from "clsx";
-import { PanelLeftOpen } from "lucide-react";
-import { useState } from "react";
+import { PanelLeftOpen, Trash2, RotateCcw, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 import { DiPython } from "react-icons/di";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import CodeEditor from "./components/CodeEditor";
 import ConvertButton from "./components/ConvertButton";
 import Sidebar from "./components/Sidebar";
@@ -10,7 +10,14 @@ import StatusBar from "./components/StatusBar";
 import SyntaxGuide from "./components/SyntaxGuide";
 import TopBar from "./components/TopBar";
 
-// 1. Define the original code here so we can use it for the Reset button
+// Type definition for History items
+interface HistoryItem {
+  id: number;
+  timestamp: string;
+  pseudoCode: string;
+  pythonCode: string;
+}
+
 const DEFAULT_CODE = `create a function called check_scores with parameter scores
     set total to 0
 
@@ -28,11 +35,19 @@ check_scores(my_list)`;
 
 function App() {
   const [pseudoCode, setPseudoCode] = useState(DEFAULT_CODE);
-
   const [pythonCode, setPythonCode] = useState("");
   const [isConverting, setIsConverting] = useState(false);
   const [status, setStatus] = useState("Ready");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // NEW: State to track which view is active (Editor vs History)
+  const [activeView, setActiveView] = useState("editor");
+
+  // NEW: History State - Loads from local storage immediately
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    const saved = localStorage.getItem("conversionHistory");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const handleConvert = () => {
     setIsConverting(true);
@@ -40,9 +55,7 @@ function App() {
     setPythonCode("");
 
     setTimeout(() => {
-      // 2. UPDATED PYTHON OUTPUT: Matches the function definition
-      setPythonCode(
-        `def check_scores(scores):
+      const generatedPython = `def check_scores(scores):
     total = 0
 
     for score in scores:
@@ -55,12 +68,45 @@ function App() {
         print("Keep trying...")
 
 my_list = [10, 50, 80, 25]
-check_scores(my_list)`
-      );
+check_scores(my_list)`;
+
+      setPythonCode(generatedPython);
+      
+      // --- SAVE TO HISTORY LOGIC ---
+      const newEntry: HistoryItem = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString(),
+        pseudoCode: pseudoCode,
+        pythonCode: generatedPython
+      };
+      
+      const updatedHistory = [newEntry, ...history];
+      setHistory(updatedHistory);
+      localStorage.setItem("conversionHistory", JSON.stringify(updatedHistory));
+      // -----------------------------
+
       setIsConverting(false);
-      setStatus("Successfully compiled");
+      setStatus("Successfully compiled & Saved to History");
     }, 2000);
   };
+
+  // Function to restore a history item
+  const restoreHistory = (item: HistoryItem) => {
+    setPseudoCode(item.pseudoCode);
+    setPythonCode(item.pythonCode);
+    setActiveView("editor");
+    toast.success("Code restored from history");
+  };
+
+  // Function to delete a history item
+  const deleteHistory = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = history.filter(h => h.id !== id);
+    setHistory(updated);
+    localStorage.setItem("conversionHistory", JSON.stringify(updated));
+    toast.info("Item removed from history");
+  };
+
   return (
     <div className="flex flex-col h-screen bg-transparent text-slate-200 font-sans overflow-hidden">
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none z-0" />
@@ -75,7 +121,11 @@ check_scores(my_list)`
           )}
         >
           <div className="w-14 h-full">
-            <Sidebar onToggle={() => setSidebarOpen(false)} />
+            <Sidebar 
+              onToggle={() => setSidebarOpen(false)} 
+              activeTab={activeView} 
+              onTabChange={setActiveView}
+            />
           </div>
         </div>
 
@@ -89,7 +139,8 @@ check_scores(my_list)`
           </button>
         )}
 
-        <main className="flex-1 flex flex-col p-6 overflow-hidden min-w-0">
+        <main className="flex-1 flex flex-col p-6 overflow-hidden min-w-0 relative">
+          {/* Background Effects */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
             <div
@@ -98,34 +149,102 @@ check_scores(my_list)`
             ></div>
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjAyKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30"></div>
           </div>
-          <div className="flex-1 flex gap-6 min-h-0">
-            <div className="flex-1 h-full flex flex-col min-h-0">
-              <CodeEditor
-                title="Pseudocode"
-                filename="Pseudocode.psc"
-                color="blue"
-                value={pseudoCode}
-                onChange={setPseudoCode}
-                // 2. Here we pass the logic to restore the original code
-                onReset={() => setPseudoCode(DEFAULT_CODE)}
-                lineCount={pseudoCode.split("\n").length}
-              />
-            </div>
 
-            <div className="flex-1 h-full flex flex-col min-h-0">
-              <CodeEditor
-                icon={DiPython}
-                title="Python 3.12"
-                filename="output.py"
-                color="green"
-                value={pythonCode}
-                readOnly
-                placeholder="# The converted Python code will appear here..."
-                lineCount={pythonCode ? pythonCode.split("\n").length : 1}
-              />
+          {/* VIEW: EDITOR */}
+          {activeView === "editor" && (
+            <>
+              <div className="flex-1 flex gap-6 min-h-0">
+                <div className="flex-1 h-full flex flex-col min-h-0">
+                  <CodeEditor
+                    title="Pseudocode"
+                    filename="Pseudocode.psc"
+                    color="blue"
+                    value={pseudoCode}
+                    onChange={setPseudoCode}
+                    onReset={() => setPseudoCode(DEFAULT_CODE)}
+                    lineCount={pseudoCode.split("\n").length}
+                  />
+                </div>
+
+                <div className="flex-1 h-full flex flex-col min-h-0">
+                  <CodeEditor
+                    icon={DiPython}
+                    title="Python 3.12"
+                    filename="output.py"
+                    color="green"
+                    value={pythonCode}
+                    readOnly
+                    placeholder="# The converted Python code will appear here..."
+                    lineCount={pythonCode ? pythonCode.split("\n").length : 1}
+                  />
+                </div>
+              </div>
+              <ConvertButton onClick={handleConvert} isLoading={isConverting} />
+            </>
+          )}
+
+          {/* VIEW: HISTORY */}
+          {activeView === "history" && (
+            <div className="flex-1 overflow-y-auto pr-2">
+              <h2 className="text-2xl font-bold mb-6 text-slate-200 flex items-center gap-2">
+                <Clock className="text-blue-400" /> Conversion History
+              </h2>
+              
+              {history.length === 0 ? (
+                <div className="text-center text-slate-500 mt-20">
+                  <p>No history yet. Try converting some code!</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {history.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 hover:border-blue-500/50 transition-all cursor-pointer group flex flex-col h-64"
+                      onClick={() => restoreHistory(item)}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs text-slate-400 font-mono bg-slate-800 px-2 py-1 rounded">
+                          {item.timestamp}
+                        </span>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={(e) => deleteHistory(item.id, e)}
+                            className="text-slate-500 hover:text-red-400 p-1 hover:bg-red-400/10 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+                        <div className="flex-1 bg-slate-950/50 rounded p-2 text-[10px] font-mono text-slate-400 overflow-hidden relative">
+                          <div className="absolute top-1 right-1 text-xs text-blue-500 opacity-50">PSC</div>
+                          <pre>{item.pseudoCode.slice(0, 150)}...</pre>
+                        </div>
+                        <div className="flex-1 bg-slate-950/50 rounded p-2 text-[10px] font-mono text-green-400/70 overflow-hidden relative">
+                           <div className="absolute top-1 right-1 text-xs text-green-500 opacity-50">PY</div>
+                          <pre>{item.pythonCode.slice(0, 150)}...</pre>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-center text-sm text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <RotateCcw size={14} className="mr-1" /> Click to Restore
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-          <ConvertButton onClick={handleConvert} isLoading={isConverting} />
+          )}
+
+           {/* VIEW: DOCS (Placeholder) */}
+           {activeView === "docs" && (
+             <div className="flex-1 flex items-center justify-center text-slate-500">
+                Documentation Page Coming Soon...
+             </div>
+           )}
+
           <SyntaxGuide />
         </main>
       </div>
@@ -135,9 +254,8 @@ check_scores(my_list)`
         position="top-center"
         richColors
         theme="dark"
-        duration={2000} // Disappears after 2 seconds (faster)
-        closeButton={false} // Clean look
-        // Sonner has built-in smooth scale and fade transitions by default
+        duration={2000}
+        closeButton={false}
       />
     </div>
   );
