@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 import { PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
 import { DiPython } from "react-icons/di";
+import { Toaster } from "sonner";
 import CodeEditor from "./components/CodeEditor";
 import ConvertButton from "./components/ConvertButton";
 import Sidebar from "./components/Sidebar";
@@ -9,50 +10,57 @@ import StatusBar from "./components/StatusBar";
 import SyntaxGuide from "./components/SyntaxGuide";
 import TopBar from "./components/TopBar";
 
+// 1. Define the original code here so we can use it for the Reset button
+const DEFAULT_CODE = `create a function called check_scores with parameter scores
+    set total to 0
+
+    for each score in scores
+        set total to total + score
+        print "Adding score: " + score
+
+    if total is greater than 100 then
+        print "High Score!"
+    otherwise
+        print "Keep trying..."
+
+set my_list to list of 10, 50, 80, 25
+check_scores(my_list)`;
+
 function App() {
-  const [pseudoCode, setPseudoCode] = useState(
-    `set scores to list of 10, 50, 80, 25
-set total to 0
+  const [pseudoCode, setPseudoCode] = useState(DEFAULT_CODE);
 
-for each score in scores
-    set total to total + score
-    print "Adding score: " + score
-
-if total is greater than 100 then
-    print "High Score!"
-otherwise
-    print "Keep trying..."`
-  );
   const [pythonCode, setPythonCode] = useState("");
   const [isConverting, setIsConverting] = useState(false);
   const [status, setStatus] = useState("Ready");
-
-  // New State for Sidebar visibility
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const handleConvert = () => {
     setIsConverting(true);
     setStatus("Processing...");
     setPythonCode("");
 
     setTimeout(() => {
+      // 2. UPDATED PYTHON OUTPUT: Matches the function definition
       setPythonCode(
-        `scores = [10, 50, 80, 25]
-total = 0
+        `def check_scores(scores):
+    total = 0
 
-for score in scores:
-    total = total + score
-    print("Adding score: " + str(score))
+    for score in scores:
+        total = total + score
+        print("Adding score: " + str(score))
 
-if total > 100:
-    print("High Score!")
-else:
-    print("Keep trying...")`
+    if total > 100:
+        print("High Score!")
+    else:
+        print("Keep trying...")
+
+my_list = [10, 50, 80, 25]
+check_scores(my_list)`
       );
       setIsConverting(false);
       setStatus("Successfully compiled");
     }, 2000);
   };
-
   return (
     <div className="flex flex-col h-screen bg-transparent text-slate-200 font-sans overflow-hidden">
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none z-0" />
@@ -60,22 +68,17 @@ else:
       <TopBar />
 
       <div className="flex flex-1 overflow-hidden z-10 relative">
-        {/* Animated Sidebar Wrapper */}
         <div
           className={clsx(
             "transition-all duration-500 ease-in-out overflow-hidden shrink-0 relative",
             sidebarOpen ? "w-14 opacity-100" : "w-0 opacity-0"
           )}
         >
-          {/* We pass the toggle function down */}
           <div className="w-14 h-full">
-            {" "}
-            {/* Inner container maintains width during transition */}
             <Sidebar onToggle={() => setSidebarOpen(false)} />
           </div>
         </div>
 
-        {/* Re-open Trigger (Only visible when sidebar is closed) */}
         {!sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(true)}
@@ -86,10 +89,7 @@ else:
           </button>
         )}
 
-        {/* Main Content */}
-
         <main className="flex-1 flex flex-col p-6 overflow-hidden min-w-0">
-          {/* Animated things */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
             <div
@@ -106,6 +106,8 @@ else:
                 color="blue"
                 value={pseudoCode}
                 onChange={setPseudoCode}
+                // 2. Here we pass the logic to restore the original code
+                onReset={() => setPseudoCode(DEFAULT_CODE)}
                 lineCount={pseudoCode.split("\n").length}
               />
             </div>
@@ -129,6 +131,14 @@ else:
       </div>
 
       <StatusBar status={status} />
+      <Toaster
+        position="top-center"
+        richColors
+        theme="dark"
+        duration={2000} // Disappears after 2 seconds (faster)
+        closeButton={false} // Clean look
+        // Sonner has built-in smooth scale and fade transitions by default
+      />
     </div>
   );
 }
