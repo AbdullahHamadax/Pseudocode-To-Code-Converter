@@ -179,10 +179,10 @@ const CodeEditor = ({
           {Icon && (
             <Icon className={clsx("w-5.5 h-5.5", currentStyle.iconColor)} />
           )}
-          <span className="font-medium text-slate-400 text-lg">{title}</span>
+          <span className=" text-slate-400 text-base">{title}</span>
         </div>
-        <div className="flex gap-1 text-lg">
-          <span className="text-slate-300 font-medium">{lineCount}</span>
+        <div className="flex gap-1 text-base">
+          <span className="text-slate-300 ">{lineCount}</span>
           <span>lines</span>
         </div>
       </div>
