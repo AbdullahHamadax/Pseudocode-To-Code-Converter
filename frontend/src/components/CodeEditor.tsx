@@ -85,7 +85,7 @@ const CodeEditor = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 transition-opacity">
+        <div className="flex items-center gap-2">
           <ActionButton
             icon={RotateCcw}
             title="Reset Code"
