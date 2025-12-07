@@ -2,7 +2,8 @@ import { clsx } from "clsx";
 import { PanelLeftOpen, Trash2, RotateCcw, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DiPython } from "react-icons/di";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "./components/ui/sonner"; // Import the component from your custom UI file
+import { toast } from "sonner";                   // Import the function directly from the library
 import CodeEditor from "./components/CodeEditor";
 import ConvertButton from "./components/ConvertButton";
 import Sidebar from "./components/Sidebar";
@@ -49,45 +50,52 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const handleConvert = () => {
+   const handleConvert = async () => {
     setIsConverting(true);
     setStatus("Processing...");
     setPythonCode("");
 
-    setTimeout(() => {
-      const generatedPython = `def check_scores(scores):
-    total = 0
+    try {
+      // 1. Make API Call to your Python Backend
+      const response = await fetch("http://localhost:8000/convert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code: pseudoCode }),
+      });
 
-    for score in scores:
-        total = total + score
-        print("Adding score: " + str(score))
+      if (!response.ok) {
+        throw new Error("Conversion failed");
+      }
 
-    if total > 100:
-        print("High Score!")
-    else:
-        print("Keep trying...")
-
-my_list = [10, 50, 80, 25]
-check_scores(my_list)`;
+      const data = await response.json();
+      const generatedPython = data.result;
 
       setPythonCode(generatedPython);
-      
-      // --- SAVE TO HISTORY LOGIC ---
+
+      // 2. Save to History (Existing Logic)
       const newEntry: HistoryItem = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
         pseudoCode: pseudoCode,
-        pythonCode: generatedPython
+        pythonCode: generatedPython,
       };
-      
+
       const updatedHistory = [newEntry, ...history];
       setHistory(updatedHistory);
       localStorage.setItem("conversionHistory", JSON.stringify(updatedHistory));
-      // -----------------------------
 
+      setStatus("Successfully compiled");
+      toast.success("Code converted successfully!");
+
+    } catch (error) {
+      console.error(error);
+      setStatus("Error");
+      toast.error("Failed to connect to the backend server.");
+    } finally {
       setIsConverting(false);
-      setStatus("Successfully compiled & Saved to History");
-    }, 2000);
+    }
   };
 
   // Function to restore a history item
