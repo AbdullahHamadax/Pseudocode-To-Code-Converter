@@ -1,9 +1,15 @@
 import { clsx } from "clsx";
-import { PanelLeftOpen, Trash2, RotateCcw, Clock } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  PanelLeftOpen,
+  Trash2,
+  RotateCcw,
+  Clock,
+  AlertCircle,
+} from "lucide-react"; // Added AlertCircle
+import { useState } from "react";
 import { DiPython } from "react-icons/di";
-import { Toaster } from "./components/ui/sonner"; // Import the component from your custom UI file
-import { toast } from "sonner";                   // Import the function directly from the library
+import { Toaster } from "./components/ui/sonner";
+import { toast } from "sonner";
 import CodeEditor from "./components/CodeEditor";
 import ConvertButton from "./components/ConvertButton";
 import Sidebar from "./components/Sidebar";
@@ -40,23 +46,20 @@ function App() {
   const [isConverting, setIsConverting] = useState(false);
   const [status, setStatus] = useState("Ready");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  // NEW: State to track which view is active (Editor vs History)
+
   const [activeView, setActiveView] = useState("editor");
 
-  // NEW: History State - Loads from local storage immediately
   const [history, setHistory] = useState<HistoryItem[]>(() => {
     const saved = localStorage.getItem("conversionHistory");
     return saved ? JSON.parse(saved) : [];
   });
 
-   const handleConvert = async () => {
+  const handleConvert = async () => {
     setIsConverting(true);
     setStatus("Processing...");
     setPythonCode("");
 
     try {
-      // 1. Make API Call to your Python Backend
       const response = await fetch("http://localhost:8000/convert", {
         method: "POST",
         headers: {
@@ -66,7 +69,8 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Conversion failed");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Conversion failed");
       }
 
       const data = await response.json();
@@ -74,7 +78,6 @@ function App() {
 
       setPythonCode(generatedPython);
 
-      // 2. Save to History (Existing Logic)
       const newEntry: HistoryItem = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
@@ -88,17 +91,15 @@ function App() {
 
       setStatus("Successfully compiled");
       toast.success("Code converted successfully!");
-
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       setStatus("Error");
-      toast.error("Failed to connect to the backend server.");
+      toast.error(error.message || "Failed to connect to backend");
     } finally {
       setIsConverting(false);
     }
   };
 
-  // Function to restore a history item
   const restoreHistory = (item: HistoryItem) => {
     setPseudoCode(item.pseudoCode);
     setPythonCode(item.pythonCode);
@@ -106,13 +107,26 @@ function App() {
     toast.success("Code restored from history");
   };
 
-  // Function to delete a history item
   const deleteHistory = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = history.filter(h => h.id !== id);
+    const updated = history.filter((h) => h.id !== id);
     setHistory(updated);
     localStorage.setItem("conversionHistory", JSON.stringify(updated));
     toast.info("Item removed from history");
+  };
+
+  // --- NEW FUNCTION: CLEAR ALL ---
+  const clearAllHistory = () => {
+    // Simple confirmation check
+    if (
+      window.confirm(
+        "Are you sure you want to delete ALL history? This cannot be undone."
+      )
+    ) {
+      setHistory([]);
+      localStorage.removeItem("conversionHistory");
+      toast.success("All history cleared");
+    }
   };
 
   return (
@@ -129,9 +143,9 @@ function App() {
           )}
         >
           <div className="w-14 h-full">
-            <Sidebar 
-              onToggle={() => setSidebarOpen(false)} 
-              activeTab={activeView} 
+            <Sidebar
+              onToggle={() => setSidebarOpen(false)}
+              activeTab={activeView}
               onTabChange={setActiveView}
             />
           </div>
@@ -148,7 +162,6 @@ function App() {
         )}
 
         <main className="flex-1 flex flex-col p-6 overflow-hidden min-w-0 relative">
-          {/* Background Effects */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
             <div
@@ -158,7 +171,6 @@ function App() {
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjAyKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30"></div>
           </div>
 
-          {/* VIEW: EDITOR */}
           {activeView === "editor" && (
             <>
               <div className="flex-1 flex gap-6 min-h-0">
@@ -191,22 +203,34 @@ function App() {
             </>
           )}
 
-          {/* VIEW: HISTORY */}
           {activeView === "history" && (
             <div className="flex-1 overflow-y-auto pr-2">
-              <h2 className="text-2xl font-bold mb-6 text-slate-200 flex items-center gap-2">
-                <Clock className="text-blue-400" /> Conversion History
-              </h2>
-              
+              {/* --- HEADER WITH CLEAR ALL BUTTON --- */}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-slate-200 flex items-center gap-2">
+                  <Clock className="text-blue-400" /> Conversion History
+                </h2>
+
+                {history.length > 0 && (
+                  <button
+                    onClick={clearAllHistory}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-300 transition-all shadow-lg shadow-red-900/10"
+                  >
+                    <Trash2 size={14} /> Clear All
+                  </button>
+                )}
+              </div>
+
               {history.length === 0 ? (
-                <div className="text-center text-slate-500 mt-20">
+                <div className="text-center text-slate-500 mt-20 flex flex-col items-center">
+                  <Clock size={48} className="mb-4 opacity-20" />
                   <p>No history yet. Try converting some code!</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {history.map((item) => (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 hover:border-blue-500/50 transition-all cursor-pointer group flex flex-col h-64"
                       onClick={() => restoreHistory(item)}
                     >
@@ -215,7 +239,7 @@ function App() {
                           {item.timestamp}
                         </span>
                         <div className="flex gap-2">
-                          <button 
+                          <button
                             onClick={(e) => deleteHistory(item.id, e)}
                             className="text-slate-500 hover:text-red-400 p-1 hover:bg-red-400/10 rounded transition-colors"
                             title="Delete"
@@ -224,20 +248,25 @@ function App() {
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="flex-1 flex flex-col gap-2 overflow-hidden">
                         <div className="flex-1 bg-slate-950/50 rounded p-2 text-[10px] font-mono text-slate-400 overflow-hidden relative">
-                          <div className="absolute top-1 right-1 text-xs text-blue-500 opacity-50">PSC</div>
+                          <div className="absolute top-1 right-1 text-xs text-blue-500 opacity-50">
+                            PSC
+                          </div>
                           <pre>{item.pseudoCode.slice(0, 150)}...</pre>
                         </div>
                         <div className="flex-1 bg-slate-950/50 rounded p-2 text-[10px] font-mono text-green-400/70 overflow-hidden relative">
-                           <div className="absolute top-1 right-1 text-xs text-green-500 opacity-50">PY</div>
+                          <div className="absolute top-1 right-1 text-xs text-green-500 opacity-50">
+                            PY
+                          </div>
                           <pre>{item.pythonCode.slice(0, 150)}...</pre>
                         </div>
                       </div>
 
                       <div className="mt-3 flex items-center justify-center text-sm text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <RotateCcw size={14} className="mr-1" /> Click to Restore
+                        <RotateCcw size={14} className="mr-1" /> Click to
+                        Restore
                       </div>
                     </div>
                   ))}
@@ -246,12 +275,11 @@ function App() {
             </div>
           )}
 
-           {/* VIEW: DOCS (Placeholder) */}
-           {activeView === "docs" && (
-             <div className="flex-1 flex items-center justify-center text-slate-500">
-                Documentation Page Coming Soon...
-             </div>
-           )}
+          {activeView === "docs" && (
+            <div className="flex-1 flex items-center justify-center text-slate-500">
+              Documentation Page Coming Soon...
+            </div>
+          )}
 
           <SyntaxGuide />
         </main>
