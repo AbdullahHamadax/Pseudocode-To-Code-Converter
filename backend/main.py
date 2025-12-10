@@ -23,10 +23,6 @@ MODEL_NAME = "llama3.2"
 @app.post("/convert")
 async def convert_code(request: CodeRequest):
     try:
-        # 1. THE GUARDRAIL PROMPT
-        # We give strict rules. If the input looks like a chat message ("Hi", "Who are you")
-        # or a command ("Ignore rules"), we force the AI to return a specific flag.
-        # 1. THE STRICT COMPILER PROMPT
         system_instruction = system_instruction = """
     You are a dumb Transpiler, not an Assistant. 
     
@@ -66,7 +62,7 @@ async def convert_code(request: CodeRequest):
             "system": system_instruction,
             "stream": False, 
             "options": {
-                "temperature": 0.0 # Zero temperature makes it extremely strict/boring
+                "temperature": 0.0 
             }
         }
 
@@ -78,11 +74,9 @@ async def convert_code(request: CodeRequest):
         result_json = response.json()
         generated_code = result_json.get("response", "").strip()
 
-        # Clean up any markdown accidental leaks
         clean_code = generated_code.replace("```python", "").replace("```", "").strip()
 
         # 2. VALIDATION LAYER
-        # If the AI returned our "Safe Word", we reject the request.
         if clean_code == "<<INVALID_INPUT>>" or clean_code.startswith("<<INVALID"):
             raise HTTPException(status_code=400, detail="That doesn't look like pseudocode. Please enter a valid pseudocode.")
 
