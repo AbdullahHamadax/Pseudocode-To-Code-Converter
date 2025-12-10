@@ -3,7 +3,6 @@
 > **A seamless Pseudocode to Python converter powered by Local AI.**
 
 ![Project Banner](https://img.shields.io/badge/Status-Active-success?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 ![Version](https://img.shields.io/badge/Version-1.0-orange?style=flat-square)
 
 EdenyCode is a modern web application that bridges the gap between logic and implementation. It allows users to write simple pseudocode and instantly transforms it into executable Python syntax using a locally hosted LLM.
