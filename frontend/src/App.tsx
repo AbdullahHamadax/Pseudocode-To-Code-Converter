@@ -16,7 +16,7 @@ import Sidebar from "./components/Sidebar";
 import StatusBar from "./components/StatusBar";
 import SyntaxGuide from "./components/SyntaxGuide";
 import TopBar from "./components/TopBar";
-
+import Documentation from "./components/Documentation";
 // Type definition for History items
 interface HistoryItem {
   id: number;
@@ -280,9 +280,7 @@ function App() {
           )}
 
           {activeView === "docs" && (
-            <div className="flex-1 flex items-center justify-center text-slate-500">
-              Documentation Page Coming Soon...
-            </div>
+          <Documentation />
           )}
 
           <SyntaxGuide />
