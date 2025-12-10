@@ -57,7 +57,7 @@ function App() {
   const handleConvert = async () => {
     setIsConverting(true);
     setStatus("Processing...");
-    setPythonCode("");
+    setPythonCode(""); // Clear previous code
 
     try {
       const response = await fetch("http://localhost:8000/convert", {
@@ -68,6 +68,7 @@ function App() {
         body: JSON.stringify({ code: pseudoCode }),
       });
 
+      // NEW: If the backend returns an error (like 400 or 500), parse the message
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Conversion failed");
@@ -78,6 +79,7 @@ function App() {
 
       setPythonCode(generatedPython);
 
+      // Save to History
       const newEntry: HistoryItem = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
@@ -94,7 +96,9 @@ function App() {
     } catch (error: any) {
       console.error(error);
       setStatus("Error");
-      toast.error(error.message || "Failed to connect to backend");
+
+      // NEW: Show the specific warning message from Python to the user
+      toast.error(error.message);
     } finally {
       setIsConverting(false);
     }
