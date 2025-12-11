@@ -3,7 +3,6 @@ import { BookOpen, Files, History, Zap } from "lucide-react";
 
 interface SidebarProps {
   onToggle: () => void;
-  // New props to control navigation from the parent
   activeTab: string;
   onTabChange: (tab: string) => void;
 }

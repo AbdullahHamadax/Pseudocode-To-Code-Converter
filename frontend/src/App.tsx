@@ -5,7 +5,7 @@ import {
   RotateCcw,
   Clock,
   AlertCircle,
-} from "lucide-react"; // Added AlertCircle
+} from "lucide-react";
 import { useState } from "react";
 import { DiPython } from "react-icons/di";
 import { Toaster } from "./components/ui/sonner";
@@ -17,7 +17,7 @@ import StatusBar from "./components/StatusBar";
 import SyntaxGuide from "./components/SyntaxGuide";
 import TopBar from "./components/TopBar";
 import Documentation from "./components/Documentation";
-// Type definition for History items
+
 interface HistoryItem {
   id: number;
   timestamp: string;
@@ -57,7 +57,7 @@ function App() {
   const handleConvert = async () => {
     setIsConverting(true);
     setStatus("Processing...");
-    setPythonCode(""); // Clear previous code
+    setPythonCode("");
 
     try {
       const response = await fetch("http://localhost:8000/convert", {
@@ -68,7 +68,6 @@ function App() {
         body: JSON.stringify({ code: pseudoCode }),
       });
 
-      // NEW: If the backend returns an error (like 400 or 500), parse the message
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Conversion failed");
@@ -79,7 +78,6 @@ function App() {
 
       setPythonCode(generatedPython);
 
-      // Save to History
       const newEntry: HistoryItem = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
@@ -97,7 +95,6 @@ function App() {
       console.error(error);
       setStatus("Error");
 
-      // NEW: Show the specific warning message from Python to the user
       toast.error(error.message);
     } finally {
       setIsConverting(false);
@@ -119,9 +116,7 @@ function App() {
     toast.info("Item removed from history");
   };
 
-  // --- NEW FUNCTION: CLEAR ALL ---
   const clearAllHistory = () => {
-    // Simple confirmation check
     if (
       window.confirm(
         "Are you sure you want to delete ALL history? This cannot be undone."
@@ -279,9 +274,7 @@ function App() {
             </div>
           )}
 
-          {activeView === "docs" && (
-          <Documentation />
-          )}
+          {activeView === "docs" && <Documentation />}
 
           <SyntaxGuide />
         </main>
