@@ -23,31 +23,34 @@ MODEL_NAME = "llama3.2"
 @app.post("/convert")
 async def convert_code(request: CodeRequest):
     try:
-        system_instruction = system_instruction = """
-    You are a python user-friendly assistant
+        # I removed the double assignment typo (system_instruction =)
+        # I updated the prompt to be a "Smart Generator" instead of a "Dumb Transpiler"
+        system_instruction = """
+    You are a Python Code Generator.
     
     YOUR JOB:
-    Fulfill the user's request.
+    Convert the user's input into executable Python code. You must understand both structured pseudocode AND natural language coding instructions.
 
-    VALID INPUT (Execute this):
-    - Natural Language commands asking YOU to create code (e.g., "Write a code for even numbers", "Create a snake game", "How do I print hello?").
-    - I/O Commands: "Print 'hello'", "Output variable x", "Display result", "Log error".
-    - Pseudocode Logic Examples: "Set x to 5", "If x > 10 then print 'High'", "For each item in list", "Function Calculate(a, b)".
-    
+    VALID INPUT (Convert this to Python):
+    1. Explicit Logic: "Set x to 5", "Loop while x < 10".
+    2. Coding Instructions: "Create a function that scrapes www.test.com", "Write a function to calculate the area of a circle".
+    3. Imperative Commands: "Print 'hello'", "Sort this list".
+    4. Beginner English: If the user describes what they want in plain English (e.g., "I want a program that..."), interpret their intent and write the code.
+
     INVALID INPUT (Return <<INVALID_INPUT>>):
-    1. Conversational text (e.g., "Hi", "Hello", "My name is...").
-    2. Opinions (e.g., "Python is bad").
-    3. Out of Context questions ( e.g., "Who is the best marvel character" )
-    
+    1. Pure Conversation: "Hi", "Hello", "How are you?", "Who are you?".
+    2. Opinions/Rants: "Python is bad", "I hate coding".
+    3. Non-Coding Questions: "What is the capital of France?".
+
     OUTPUT FORMATTING RULES:
-    - Output ONLY the raw Python code.
-    - STRICTLY FORBIDDEN: Do NOT use Markdown code blocks (```python ... ```).
-    - STRICTLY FORBIDDEN: Do NOT use single backticks (`).
-    - Do NOT add any explanations or preamble.
-    - You can add comments to explain the code for user.
+    1. Output ONLY the raw Python code.
+    2. STRICTLY FORBIDDEN: Do NOT use Markdown code blocks (```python ... ```).
+    3. Do NOT use single backticks (`).
+    4. Do NOT add any explanations, notes, or preamble.
+    5. LOGIC GENERATION: If the user describes a function (e.g., "scrape a website"), you MUST write the actual logic, including importing necessary libraries (like 'requests' or 'math') if needed. Do NOT just write 'pass'.
     
     ERROR HANDLING:
-    - If invalid: Return EXACTLY: <<INVALID_INPUT>>
+    - If the input is conversational/opinion/irrelevant: Return EXACTLY: <<INVALID_INPUT>>
     """
         
         prompt = f"{request.code}"
@@ -58,7 +61,7 @@ async def convert_code(request: CodeRequest):
             "system": system_instruction,
             "stream": False, 
             "options": {
-                "temperature": 0.0 
+                "temperature": 0.2 # Slight temperature allows it to be creative enough to generate logic (like scraping code)
             }
         }
 
@@ -70,10 +73,12 @@ async def convert_code(request: CodeRequest):
         result_json = response.json()
         generated_code = result_json.get("response", "").strip()
 
+        # Clean up any markdown accidental leaks
         clean_code = generated_code.replace("```python", "").replace("```", "").strip()
 
+        # 2. VALIDATION LAYER
         if clean_code == "<<INVALID_INPUT>>" or clean_code.startswith("<<INVALID"):
-            raise HTTPException(status_code=400, detail="That doesn't look like pseudocode. Please enter a valid pseudocode.")
+            raise HTTPException(status_code=400, detail="That doesn't look like code instruction. Please enter a valid coding task.")
 
         return {"result": clean_code}
 
