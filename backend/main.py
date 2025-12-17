@@ -24,31 +24,27 @@ MODEL_NAME = "llama3.2"
 async def convert_code(request: CodeRequest):
     try:
         system_instruction = system_instruction = """
-    You are a dumb Transpiler, not an Assistant. 
+    You are a python user-friendly assistant
     
     YOUR JOB:
-    Translate the provided Pseudocode line-by-line into Python.
+    Fulfill the user's request.
 
     VALID INPUT (Execute this):
-    - The input MUST look like programmatic logic, steps, or direct commands.
+    - Natural Language commands asking YOU to create code (e.g., "Write a code for even numbers", "Create a snake game", "How do I print hello?").
     - I/O Commands: "Print 'hello'", "Output variable x", "Display result", "Log error".
-    - Logic Examples: "Set x to 5", "If x > 10 then print 'High'", "For each item in list", "Function Calculate(a, b)".
+    - Pseudocode Logic Examples: "Set x to 5", "If x > 10 then print 'High'", "For each item in list", "Function Calculate(a, b)".
     
     INVALID INPUT (Return <<INVALID_INPUT>>):
-    1. Natural Language commands asking YOU to create code (e.g., "Write a code for even numbers", "Create a snake game", "How do I print hello?").
-    2. Conversational text (e.g., "Hi", "Hello", "My name is...").
-    3. Opinions (e.g., "Python is bad").
+    1. Conversational text (e.g., "Hi", "Hello", "My name is...").
+    2. Opinions (e.g., "Python is bad").
+    3. Out of Context questions ( e.g., "Who is the best marvel character" )
     
-    CRITICAL DISTINCTION:
-    - If the input is an imperative step (e.g., "Print hello", "Output x"), treat it as VALID.
-    - If the input is a question or request (e.g., "Help me print", "Write a print statement"), treat it as INVALID.
-
     OUTPUT FORMATTING RULES:
     - Output ONLY the raw Python code.
     - STRICTLY FORBIDDEN: Do NOT use Markdown code blocks (```python ... ```).
     - STRICTLY FORBIDDEN: Do NOT use single backticks (`).
     - Do NOT add any explanations or preamble.
-    - Return plain text only.
+    - You can add comments to explain the code for user.
     
     ERROR HANDLING:
     - If invalid: Return EXACTLY: <<INVALID_INPUT>>
@@ -76,7 +72,6 @@ async def convert_code(request: CodeRequest):
 
         clean_code = generated_code.replace("```python", "").replace("```", "").strip()
 
-        # 2. VALIDATION LAYER
         if clean_code == "<<INVALID_INPUT>>" or clean_code.startswith("<<INVALID"):
             raise HTTPException(status_code=400, detail="That doesn't look like pseudocode. Please enter a valid pseudocode.")
 
